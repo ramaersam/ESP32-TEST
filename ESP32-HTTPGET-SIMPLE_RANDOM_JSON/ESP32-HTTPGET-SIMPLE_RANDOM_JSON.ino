@@ -1,56 +1,67 @@
 #include <WiFi.h>
+#include <WiFiClientSecure.h> // Import WiFiClientSecure library
 #include <HTTPClient.h>
 
 const char* ssid = "Digitels";
 const char* password = "Digitels123@!";
-const char* server = "jsonplaceholder.typicode.com"; // Update the server URL
-const int httpPort = 80; // Default HTTP port
 
+const char* serverName = "devs.digitels.me";
+const char* requestPath = "/irdata?TV=polytron&slot=1";
+
+unsigned long lastTime = 0;
+unsigned long timerDelay = 5000;
 
 void setup() {
   Serial.begin(115200);
-  
+
   WiFi.begin(ssid, password);
+  Serial.println("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
+    delay(500);
+    Serial.print(".");
   }
-  Serial.println("Connected to WiFi");
+  Serial.println("");
+  Serial.print("Connected to WiFi network with IP Address: ");
+  Serial.println(WiFi.localIP());
+
+  Serial.println("Timer set to 5 seconds, it will take 5 seconds before making the first request.");
 }
 
 void loop() {
-  WiFiClient client;
-  
-  if (!client.connect(server, httpPort)) {
-    Serial.println("Connection failed");
-    return;
-  }
-  
-  // Make an HTTP GET request
-  client.print("GET /posts/1/comments HTTP/1.1\r\n");
-  client.print("Host: ");
-  client.print(server);
-  client.print("\r\n");
-  client.print("Connection: close\r\n\r\n");
-  
-  while (client.connected()) {
-    String line = client.readStringUntil('\n');
-    if (line == "\r") {
-      Serial.println("Headers received");
-      break;
+  if ((millis() - lastTime) > timerDelay) {
+    if (WiFi.status() == WL_CONNECTED) {
+      String responseData = httpGETRequest(serverName, requestPath);
+      Serial.println("Received data: ");
+      Serial.println(responseData);
+    } else {
+      Serial.println("WiFi Disconnected");
     }
+    lastTime = millis();
   }
-  
-  // Read and print the response data
-  while (client.available()) {
-    String line = client.readStringUntil('\n');
-    Serial.println(line);
+}
+
+String httpGETRequest(const char* server, const char* path) {
+  WiFiClientSecure client; // Use WiFiClientSecure instead of WiFiClient
+  HTTPClient http;
+
+  // Additional setup for secure connection
+  client.setInsecure(); // Set connection as insecure (not recommended for production)
+
+  String fullUrl = String("https://") + String(server) + String(path);
+  http.begin(client, fullUrl);
+
+  int httpResponseCode = http.GET();
+  String responsePayload = "";
+
+  if (httpResponseCode > 0) {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    responsePayload = http.getString();
+  } else {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
   }
-  
-  Serial.println("Response received");
-  
-  client.stop();
-  
-  // Wait for a period of time before making the next request
-  delay(5000);
+
+  http.end();
+  return responsePayload;
 }
