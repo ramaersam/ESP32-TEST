@@ -12,6 +12,8 @@ const char* requestPath = "/irdata?TV=polytron&slot=1";
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
 
+bool requestData = false; // Flag to indicate when to trigger data request
+
 String httpGETRequest(const char* server, const char* path) {
   WiFiClientSecure client; // Use WiFiClientSecure instead of WiFiClient
   HTTPClient http;
@@ -79,8 +81,7 @@ void setup() {
   Serial.print("Connected to WiFi network with IP Address: ");
   Serial.println(WiFi.localIP());
 
-  Serial.println("Timer set to 5 seconds, it will take 5 seconds before making the first request.");
-
+  
   // Initialize SPIFFS
   if (!SPIFFS.begin(true)) {
     Serial.println("An error occurred while mounting SPIFFS");
@@ -88,11 +89,24 @@ void setup() {
   }
 
   Serial.println("Timer set to 5 seconds, it will take 5 seconds before making the first request.");
+  Serial.println("Type 'GETDATA' and press Enter to trigger data request.");
   
 }
 
 void loop() {
   if ((millis() - lastTime) > timerDelay) {
+     if (Serial.available() > 0) {
+      String input = Serial.readStringUntil('\n');
+      input.trim(); // Remove leading and trailing whitespaces
+  
+      if (input.equalsIgnoreCase("GETDATA")) {
+        requestData = true;
+      }
+    }   
+    
+  if (requestData) {
+    requestData = false; // Reset the flag
+        
     if (WiFi.status() == WL_CONNECTED) {
       // Get data from the server
       String responseData = httpGETRequest(serverName, requestPath);
@@ -110,6 +124,7 @@ void loop() {
     } else {
       Serial.println("WiFi Disconnected");
     }
+  } 
     lastTime = millis();
     delay(5000); // Delay for 5 seconds before making the next request
   }
