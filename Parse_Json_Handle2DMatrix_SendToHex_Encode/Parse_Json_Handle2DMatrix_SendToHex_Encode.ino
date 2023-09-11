@@ -16,10 +16,10 @@ void parseDimmer(const char* status) {
       for (uint8_t j = 0; j < 6; j++) {
         zigbeeDim[i][j] = atoi(token); // Convert token to integer and store it in the array
         token = strtok(NULL, ",");
-        //    i++;
       }
     }
   }
+}
 
 // Function to parse kinetic data
 void parseKinetic(const char* status) {
@@ -37,9 +37,6 @@ void parseKinetic(const char* status) {
     String zigbeeBinStr = statusString.substring(i * 6, (i * 6) + 6);
     zigbeeDec[i] = strtol(zigbeeBinStr.c_str(), NULL, 2);
   }
-
-  // Process the kinetic data as needed
-  // Add your logic here based on the parsed data
 }
 
 // Function to handle JSON data
@@ -103,6 +100,7 @@ void handleJsonData(const String& jsonString) {
       zigbeeData[11] = doc["OK"];      
       for (int i = 0; i < 17; i++) {
         Serial1.write(zigbeeData[i]);
+        //Serial.print(zigbeeData[i]);//for debugging
         Serial.print(zigbeeData[i], HEX);
         Serial.print(" ");
       }
